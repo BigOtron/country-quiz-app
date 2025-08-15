@@ -7,6 +7,8 @@ import dev.bigotron.quizapp.exception.ResourceNotFoundException;
 import dev.bigotron.quizapp.repository.UserRepository;
 import dev.bigotron.quizapp.service.interfaces.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -15,12 +17,15 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class UserServiceImpl implements UserService {
+public class UserServiceImpl implements UserService, UserDetailsService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
     public UserResponseDTO registerUser(UserRegistrationRequestDTO request) {
+        if (userRepository.findByUsername(request.username()).isPresent()) {
+            throw new IllegalArgumentException("Username already exists");
+        }
         // TODO - I should add validate annotations on the dto fields
         User user = new User();
         user.setUsername(request.username());
@@ -33,22 +38,25 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponseDTO getUserById(Long id) {
+    public UserResponseDTO loadUserById(Long id) {
         User user = userRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException("User not found: " + id));
         return toResponseDTO(user);
     }
 
     @Override
-    public UserResponseDTO getUserByUsername(String username) {
+    public UserDetails loadUserByUsername(String username) {
         User user = userRepository.findByUsername(username).orElseThrow(
                 () -> new ResourceNotFoundException("Username not found: " + username)
         );
-        return toResponseDTO(user);
+        return org.springframework.security.core.userdetails.User.builder()
+                .username(user.getUsername())
+                .password(user.getPasswordHash())
+                .build();
     }
 
     @Override
-    public List<UserResponseDTO> getAllUsers() {
+    public List<UserResponseDTO> loadAllUsers() {
         return userRepository.findAll().stream()
                 .map(this::toResponseDTO)
                 .toList();
