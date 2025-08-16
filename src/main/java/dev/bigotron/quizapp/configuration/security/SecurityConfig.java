@@ -23,7 +23,10 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/register", "/login",
                                 "/api/auth/register", "/api/auth/login", "/swagger-ui.html",
-                                "/swagger-ui/index.html"
+                                "/swagger-ui/index.html",
+                                "/v3/api-docs/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 ).httpBasic(Customizer.withDefaults());
